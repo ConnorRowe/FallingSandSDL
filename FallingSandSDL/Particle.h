@@ -5,7 +5,7 @@
 class Particle
 {
 public:
-	typedef struct particle_t
+	struct particle_t
 	{
 		int id;
 		float lifetime;

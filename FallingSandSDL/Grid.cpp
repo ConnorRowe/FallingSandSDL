@@ -14,6 +14,8 @@ void Grid::init(size_t width, size_t height)
 	{
 		ary[i] = Particle::emptyParticle();
 	}
+
+	std::cout << "Using: Extremely Fast Line Algorithm Var E (Addition Fixed Point PreCalc)\nCopyright 2001-2, By Po-Han Lin\nhttp://www.edepot.com/algorithm.html\n";
 }
 
 Particle::particle_t* Grid::get(int x, int y)

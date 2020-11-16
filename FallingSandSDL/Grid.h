@@ -16,6 +16,8 @@ public:
 	size_t getLength() { return length; }
 	void resetUpdate();
 	bool isParticleEmpty(int x, int y);
+	bool isParticleEmpty(Vector2 pos) { return isParticleEmpty(pos.x, pos.y); }
+	bool isPosWithinBounds(Vector2 pos) { return pos.x >= 0 && pos.x < width&& pos.y >= 0 && pos.y < height; }
 
 private:
 	size_t width;

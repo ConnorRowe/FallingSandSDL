@@ -18,8 +18,8 @@ int main(int argc, char* argv[])
 		clock_t beginFrame = clock();
 
 		game->eventHandler();
-		game->update();
-		game->render();
+		game->update(averageFrameTimeMilliseconds);
+		game->render(averageFrameTimeMilliseconds);
 
 		clock_t endFrame = clock();
 
