@@ -7,24 +7,8 @@ Game::Game()
 	gridWidth = 192;
 	gridHeight = 128;
 
-	// Allocate grid array
-	grid = new particle_t * [gridWidth];
-	for (int i = 0; i < gridWidth; ++i)
-		grid[i] = new particle_t[gridHeight];
-
-	// Fill
-	for (int i = 0; i < gridWidth; ++i)
-		for (int j = 0; j < gridHeight; ++j)
-			grid[i][j] = emptyParticle();
-
-
-	// Set top line
-	//particle_t sand = emptyParticle();
-	//sand.id = 1;
-	//for (int i = 0; i < gridWidth; ++i)
-	//{
-	//	grid[i][0] = sand;
-	//}
+	grid = Grid::Grid();
+	grid.init(gridWidth, gridHeight);
 }
 
 Game::~Game()
@@ -140,11 +124,11 @@ void Game::eventHandler()
 
 void Game::update()
 {
-	particle_t sand = emptyParticle();
+	Particle::particle_t sand = Particle::emptyParticle();
 	sand.id = 1;
 	sand.colour = SDL_Colour{ 255,222,173,255 };
 
-	particle_t water = emptyParticle();
+	Particle::particle_t water = Particle::emptyParticle();
 	water.id = 2;
 	water.colour = SDL_Colour{ 30,144,255,255 };
 
@@ -159,16 +143,19 @@ void Game::update()
 
 
 	// Update particles
+
 	for (int x = 0; x < gridWidth; ++x)
 		for (int y = 0; y < gridHeight; ++y)
 		{
 			Vector2 translate = Vector2::ZERO();
 
-			if (!grid[x][y].isEmpty() && !grid[x][y].hasBeenUpdated)
-			{
-				grid[x][y].hasBeenUpdated = true;
+			Particle::particle_t* p = grid.get(x, y);
 
-				switch (grid[x][y].id)
+			if (!p->isEmpty() && !p->hasBeenUpdated)
+			{
+				p->hasBeenUpdated = true;
+
+				switch (p->id)
 				{
 				case 1:
 					updateSand(Vector2(x, y));
@@ -183,14 +170,7 @@ void Game::update()
 		}
 
 	// Reset hasBeenUpdated
-	for (int i = 0; i < gridWidth; ++i)
-		for (int j = 0; j < gridHeight; ++j)
-		{
-			if (!grid[i][j].isEmpty() && grid[i][j].hasBeenUpdated)
-			{
-				grid[i][j].hasBeenUpdated = false;
-			}
-		}
+	grid.resetUpdate();
 }
 
 void Game::render()
@@ -204,10 +184,12 @@ void Game::render()
 	for (int x = 0; x < gridWidth; ++x)
 		for (int y = 0; y < gridHeight; ++y)
 		{
-			if (!grid[x][y].isEmpty())
+			Particle::particle_t* p = grid.get(x, y);
+
+			if (!p->isEmpty())
 			{
 				// Draw particle
-				const SDL_Colour* col = &grid[x][y].colour;
+				const SDL_Colour* col = &p->colour;
 
 				SDL_SetRenderDrawColor(renderer, *(&col->r), *(&col->g), *(&col->b), *(&col->a));
 
@@ -226,38 +208,15 @@ void Game::clean()
 	SDL_DestroyRenderer(renderer);
 	SDL_Quit();
 
-	// Free grid array
-	for (int i = 0; i < gridWidth; ++i)
-		delete[] grid[i];
-	delete[] grid;
-
 	std::cout << "Game cleaned\n";
 }
 
-Game::particle_t::particle_t()
+void Game::spawnParticle(Particle::particle_t particle, Vector2 pos)
 {
-	this->id = 0;
-	this->lifetime = 0;
-	this->velocity = Vector2F::ZERO();
-	this->colour = SDL_Color{ 0,0,0,0 };
-}
-
-bool Game::particle_t::isEmpty()
-{
-	return (this->id == 0);
-}
-
-void Game::spawnParticle(particle_t particle, Vector2 pos)
-{
-	if (grid[pos.x][pos.y].isEmpty())
+	if (grid.get(pos)->isEmpty())
 	{
-		grid[pos.x][pos.y] = particle;
+		grid.set(pos, particle);
 	}
-}
-
-Game::particle_t Game::emptyParticle()
-{
-	return particle_t();
 }
 
 bool Game::updateSand(Vector2 pos)
@@ -268,18 +227,18 @@ bool Game::updateSand(Vector2 pos)
 	Vector2 translate = Vector2::ZERO();
 
 	// Check cell below
-	if (y + 1 <= gridHeight && grid[x][y + 1].isEmpty())
+	if (y + 1 < gridHeight && grid.isParticleEmpty(x, y + 1))
 	{
 		// Move down
 		translate.y = 1;
 	}
-	else if (y + 1 <= gridHeight && x - 1 >= 0 && grid[x - 1][y + 1].isEmpty())
+	else if (y + 1 < gridHeight && x - 1 >= 0 && grid.isParticleEmpty(x - 1, y + 1))
 	{
 		// Move down left
 		translate.x = -1;
 		translate.y = 1;
 	}
-	else if (y + 1 <= gridHeight && x + 1 < gridWidth && grid[x + 1][y + 1].isEmpty())
+	else if (y + 1 < gridHeight && x + 1 < gridWidth && grid.isParticleEmpty(x + 1, y + 1))
 	{
 		// Move down right
 		translate.x = 1;
@@ -289,10 +248,10 @@ bool Game::updateSand(Vector2 pos)
 	if (translate != Vector2::ZERO())
 	{
 		// Move particle
-		grid[x + translate.x][y + translate.y] = grid[x][y];
+		grid.set(pos + translate, *grid.get(pos));
 
 		// Clear old cell
-		grid[x][y] = emptyParticle();
+		grid.set(pos, Particle::emptyParticle());
 
 		return true;
 	}
@@ -311,11 +270,11 @@ bool Game::updateWater(Vector2 pos)
 
 		Vector2 translate = Vector2::ZERO();
 
-		if (x - 1 >= 0 && grid[x - 1][y].isEmpty())
+		if (x - 1 >= 0 && grid.isParticleEmpty(x - 1, y))
 		{
 			translate.x = -1;
 		}
-		else if (x + 1 < gridWidth && grid[x + 1][y].isEmpty())
+		else if (x + 1 < gridWidth && grid.isParticleEmpty(x + 1, y))
 		{
 			translate.x = 1;
 		}
@@ -323,10 +282,10 @@ bool Game::updateWater(Vector2 pos)
 		if (translate != Vector2::ZERO())
 		{
 			// Move particle
-			grid[x + translate.x][y + translate.y] = grid[x][y];
+			grid.set(pos + translate, *grid.get(pos));
 
 			// Clear old cell
-			grid[x][y] = emptyParticle();
+			grid.set(pos, Particle::emptyParticle());
 
 			return true;
 		}

@@ -2,6 +2,8 @@
 #include "Vector2F.h"
 #include <iostream>
 #include "Vector2.h"
+#include "Particle.h"
+#include "Grid.h"
 
 #pragma once
 class Game
@@ -19,20 +21,7 @@ public:
 
 	bool running() { return isRunning; }
 
-	typedef struct particle_t
-	{
-		int id;
-		float lifetime;
-		Vector2F velocity;
-		SDL_Colour colour;
-		bool hasBeenUpdated = false;
-
-		particle_t();
-
-		bool isEmpty();
-	};
-
-	void spawnParticle(particle_t particle, Vector2 pos);
+	void spawnParticle(Particle::particle_t particle, Vector2 pos);
 
 private:
 	int count = 0;
@@ -46,9 +35,8 @@ private:
 
 	int gridWidth;
 	int gridHeight;
-	particle_t** grid;
 
-	particle_t emptyParticle();
+	Grid grid;
 
 	static SDL_Event event;
 
